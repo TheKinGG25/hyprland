@@ -3,5 +3,5 @@ return {
     terminal    = "ghostty",
     fileManager = "dolphin",
     menu        = "hyprlauncher",
-    browser     = "brave-origin-beta",
+    browser     = "brave-origin-beta --password-store=kwallet6",
 }

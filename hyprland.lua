@@ -9,6 +9,7 @@ require("keybinds")
 require("input")
 require("autostart")
 require("workspace")
+require("environment_variables")
 
 
 -----------------------------
@@ -46,30 +47,32 @@ hl.env("NVD_BACKEND",                "direct")
 -- https://wiki.hypr.land/Configuring/Basics/Variables/#general
 hl.config({
     general = {
-        gaps_in  = 0,
-        gaps_out = 5,
+        gaps_in  = 2,
+        gaps_out = 10,
 
         border_size = 1,
 
         col = {
-            active_border   = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
+            active_border   = "rgba(33ccffee)",
             inactive_border = "rgba(595959aa)",
         },
 
+        -- Set to true to enable resizing windows by clicking and dragging on borders and gaps
         resize_on_border = false,
-        allow_tearing    = false,
-        layout           = "dwindle",
-    },
-})
 
--- https://wiki.hypr.land/Configuring/Basics/Variables/#decoration
-hl.config({
+        -- Please see https://wiki.hypr.land/Configuring/Advanced-and-Cool/Tearing/ before you turn this on
+        allow_tearing = false,
+
+        layout = "dwindle",
+    },
+
     decoration = {
-        rounding       = 10,
+        rounding       = 5,
         rounding_power = 2,
 
-        active_opacity   = 1.0,
-        inactive_opacity = 1.0,
+        -- Change transparency of focused and unfocused windows
+        active_opacity   = 0.95,
+        inactive_opacity = 0.8,
 
         shadow = {
             enabled      = true,
@@ -79,14 +82,17 @@ hl.config({
         },
 
         blur = {
-            enabled  = true,
-            size     = 3,
-            passes   = 1,
-            vibrancy = 0.1696,
+            enabled   = true,
+            size      = 3,
+            passes    = 1,
+            vibrancy  = 0.1696,
         },
     },
-})
 
+    animations = {
+        enabled = true,
+    },
+})
 -- https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
 hl.config({ animations = { enabled = true } })
 
@@ -140,11 +146,13 @@ hl.config({
 -- https://wiki.hypr.land/Configuring/Basics/Variables/#misc
 hl.config({
     misc = {
-        force_default_wallpaper = -1,
-        disable_hyprland_logo   = false,
+        force_default_wallpaper = 0,    -- Set to 0 or 1 to disable the anime mascot wallpapers
+        disable_hyprland_logo   = true, -- If true disables the random hyprland logo / anime girl background. :(
+		disable_splash_rendering = true,
+		font_family = "JetBrainsMono",
+		middle_click_paste = false,
     },
 })
-
 
 ------------------------------
 ---- WINDOWS AND WORKSPACES ----

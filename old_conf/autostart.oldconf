@@ -1,3 +1,0 @@
-exec-once = waybar
-exec-once = hyprpaper
-exec-once = sleep 1 && hyprctl dispatch dpms off eDP-1 && sleep 0.5 && hyprctl dispatch dpms on eDP-1
