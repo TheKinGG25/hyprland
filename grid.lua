@@ -9,7 +9,9 @@
 -- Keybinds (keybinds.lua) and Quickshell call the functions in M. Compaction and monitor
 -- hotplug run from hl.on() events. State lives in $XDG_RUNTIME_DIR:
 --   hypr-grid.lua   full state, read back after a config reload (reload wipes Lua state)
---   hypr-grid.json  {"n": 1, "screens": {"eDP-2": [m for n=1..6], ...}} for the Quickshell bar
+--   hypr-grid.json  read by Quickshell (bar labels and the Meta+Tab overview):
+--                   {"n": 1, "overview": {"open": false, "zoom": 3},
+--                    "screens": {"eDP-2": {"index": 0, "m": [m per n], "rows": [stack + empty slot per n]}}}
 -- Both are reset when Hyprland starts.
 -- #######################################################################################
 
@@ -23,6 +25,9 @@ local MON_INDEX         = { [MAIN] = 0, [EXTERNAL] = 1 }
 local MONITOR_SETTLE_MS = 300          -- wait after a hotplug before renumbering
 local ANIM_SPEED        = { workspaces = 1.94, workspacesIn = 1.21, workspacesOut = 1.94 }
 local ANIM_CURVE        = "almostLinear"
+local ZOOM_DEFAULT      = 3            -- overview: workspaces visible across (and down) at 100%
+local ZOOM_MIN          = 1            -- Ctrl+= stops here (300%)
+local ZOOM_MAX          = 6            -- Ctrl+- stops here (50%)
 
 -- Ids from here up are scratch space (parked empty workspaces, ids in flight), never grid cells
 local SCRATCH = 80000
@@ -39,8 +44,9 @@ local VIEW_FILE  = runtime .. "/hypr-grid.json"
 -- main_at: eDP-2's {n, m} as of the last normalize, so a reconnect knows where it was
 --          even after Hyprland has shuffled workspaces around on its own
 -- extra:   monitor index for any monitor not in MON_INDEX
+-- overview: Meta+Tab view drawn by Quickshell; zoom = workspaces visible across
 local function fresh_state()
-    return { n = 1, last_m = {}, origin = {}, extra = {} }
+    return { n = 1, last_m = {}, origin = {}, extra = {}, overview = { open = false, zoom = ZOOM_DEFAULT } }
 end
 
 local state = fresh_state()
@@ -212,12 +218,18 @@ local function save()
 
     local screens = {}
     for _, mon in ipairs(hl.get_monitors()) do
-        local ms = {}
-        for n = 1, N_COUNT do ms[n] = tostring(remembered(mon.name, n)) end
-        screens[#screens + 1] = string.format("%q:[%s]", mon.name, table.concat(ms, ","))
+        local ms, rows = {}, {}
+        for n = 1, N_COUNT do
+            ms[n] = tostring(remembered(mon.name, n))
+            rows[n] = tostring(empty_slot(mon.name, n))
+        end
+        screens[#screens + 1] = string.format('%q:{"index":%d,"m":[%s],"rows":[%s]}', mon.name,
+            mon_index(mon.name), table.concat(ms, ","), table.concat(rows, ","))
     end
+    local ov = state.overview
     -- In place: Quickshell watches this file, and a rename would swap the inode under its watch
-    write_file(VIEW_FILE, string.format('{"n":%d,"screens":{%s}}\n', state.n, table.concat(screens, ",")), true)
+    write_file(VIEW_FILE, string.format('{"n":%d,"overview":{"open":%s,"zoom":%d},"screens":{%s}}\n',
+        state.n, tostring(ov.open), ov.zoom, table.concat(screens, ",")), true)
 end
 
 local function load()
@@ -228,6 +240,7 @@ local function load()
         state = fresh_state()
         for k, v in pairs(t) do state[k] = v end
     end
+    state.overview.open = false   -- a reload drops the overview submap, so the view closes too
 end
 
 ---------------------
@@ -373,17 +386,39 @@ function M.step_n(delta)
 end
 
 -- Meta + Ctrl + Shift + Up / Down: only the focused monitor moves
-function M.step_m(dir)
-    if busy or hotplug then return end
-    local mon, mi, n, m = here()
-    if not mi then return end
-    local t = vertical_target(mon.name, n, m, dir)
-    if not t then return end
+local function show_m(mi, n, t)
     local cursor = hl.get_cursor_pos()
     set_anim("slidevert")
     hl.dispatch(hl.dsp.focus({ workspace = encode(mi, n, t) }))
     M.normalize()
     settle_cursor(cursor)
+end
+
+function M.step_m(dir)
+    if busy or hotplug then return end
+    local mon, mi, n, m = here()
+    if not mi then return end
+    local t = vertical_target(mon.name, n, m, dir)
+    if t then show_m(mi, n, t) end
+end
+
+-- Up / Down inside the overview: like step_m, but only through workspaces with windows,
+-- since the overview does not draw empty ones
+function M.browse_m(dir)
+    if busy or hotplug then return end
+    local mon, mi, n, m = here()
+    if not mi then return end
+    local last = empty_slot(mon.name, n) - 1   -- the last workspace that has windows
+    if last < 1 then return end
+    local t
+    if m > last then
+        t = (dir == "down") and 1 or last
+    elseif dir == "down" then
+        t = (m < last) and m + 1 or 1
+    else
+        t = (m > 1) and m - 1 or last
+    end
+    if t ~= m then show_m(mi, n, t) end
 end
 
 -- Meta + Shift + 1..6: send the focused window to n at this monitor's remembered m.
@@ -428,6 +463,47 @@ function M.carry_m(dir)
     hl.dispatch(hl.dsp.window.move({ workspace = encode(mi, n, t), follow = true }))
     M.normalize()
     settle_cursor()
+end
+
+---------------------
+---- OVERVIEW ----
+---------------------
+
+-- Meta + Tab: the exploded view. Quickshell draws it from the view file; the "overview" submap
+-- (keybinds.lua) holds its keys (arrows, zoom, close) and swallows every other one.
+function M.toggle_overview()
+    if state.overview.open then return M.close_overview() end
+    state.overview.open = true
+    hl.dispatch(hl.dsp.submap("overview"))
+    save()
+end
+
+function M.close_overview()
+    state.overview.open = false
+    hl.dispatch(hl.dsp.submap("reset"))
+    save()
+end
+
+-- Ctrl+= (+1) shows fewer, bigger workspaces; Ctrl+- (-1) more, smaller ones
+function M.zoom(step)
+    local z = state.overview.zoom - step
+    state.overview.zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, z))
+    save()
+end
+
+-- A click on [n,m] in a monitor's overview: n changes on every monitor, m on that one
+function M.go(mon_name, n, m)
+    if busy or hotplug or not hl.get_monitor(mon_name) then return end
+    local active = hl.get_active_monitor()
+    if not active or active.name ~= mon_name then hl.dispatch(hl.dsp.focus({ monitor = mon_name })) end
+    state.last_m[mon_name] = state.last_m[mon_name] or {}
+    state.last_m[mon_name][n] = m
+    if n ~= state.n then return M.switch_n(n) end
+    local cursor = hl.get_cursor_pos()
+    set_anim("slidevert")
+    hl.dispatch(hl.dsp.focus({ workspace = encode(mon_index(mon_name), n, remembered(mon_name, n)) }))
+    M.normalize()
+    settle_cursor(cursor)
 end
 
 -- Meta + Ctrl + Arrows: move the window between tiles as usual; at the edge of a monitor it

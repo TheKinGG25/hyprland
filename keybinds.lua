@@ -81,6 +81,28 @@ for n = 1, 6 do
     hl.bind(mainMod .. " + " .. shiftMod .. " + " .. n, function() grid.send_n(n) end)
 end
 
+-- Exploded view of the workspace grid (drawn by Quickshell): mainMod + TAB toggles it.
+-- While it is open only these keys work, everything else is swallowed (catchall), so neither
+-- the focused window nor the other binds see it. Arrows move through the grid: left / right
+-- change n on every monitor, up / down move through this monitor's workspaces that have windows.
+-- ENTER / ESCAPE / mainMod + TAB close it, CTRL + = / CTRL + - zoom (100% = 3 workspaces across).
+hl.bind(mainMod .. " + Tab", function() grid.toggle_overview() end)
+hl.define_submap("overview", function()
+    hl.bind(mainMod .. " + Tab", function() grid.close_overview() end)
+    hl.bind("escape",            function() grid.close_overview() end)
+    hl.bind("Return",            function() grid.close_overview() end)
+    hl.bind("KP_Enter",          function() grid.close_overview() end)
+    hl.bind("left",  function() grid.step_n(-1) end,        { repeating = true })
+    hl.bind("right", function() grid.step_n(1) end,         { repeating = true })
+    hl.bind("up",    function() grid.browse_m("up") end,    { repeating = true })
+    hl.bind("down",  function() grid.browse_m("down") end,  { repeating = true })
+    hl.bind(ctrlMod .. " + equal",       function() grid.zoom(1) end,  { repeating = true })
+    hl.bind(ctrlMod .. " + minus",       function() grid.zoom(-1) end, { repeating = true })
+    hl.bind(ctrlMod .. " + KP_Add",      function() grid.zoom(1) end,  { repeating = true })
+    hl.bind(ctrlMod .. " + KP_Subtract", function() grid.zoom(-1) end, { repeating = true })
+    hl.bind("catchall", hl.dsp.no_op())
+end)
+
 -- Move/resize windows with mainMod + LMB/RMB and dragging
 hl.bind(mainMod .. " + mouse:272", window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", window.resize(), { mouse = true })
