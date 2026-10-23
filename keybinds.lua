@@ -1,21 +1,16 @@
 local programs = require("programs")
+local grid = require("grid")
 
 local max_volume = 200
 local min_bightness = 0
 
 local window = hl.dsp.window
-local moveWindow = 30
 local resizeWindow = 30
 
 local resizeLeft  = { x = -resizeWindow, y = 0, relative = true }
 local resizeRight = { x = resizeWindow,  y = 0, relative = true }
 local resizeUp    = { x = 0, y = -resizeWindow, relative = true }
 local resizeDown  = { x = 0, y = resizeWindow,  relative = true }
-
-local moveLeft  = { x = -moveWindow, y = 0, relative = true }
-local moveRight = { x = moveWindow,  y = 0, relative = true }
-local moveUp    = { x = 0, y = -moveWindow, relative = true }
-local moveDown  = { x = 0, y = moveWindow,  relative = true }
 
 
 local function opts(direction)
@@ -25,13 +20,6 @@ end
 local function focusAndTeleport(direction)
     return function()
         hl.dispatch(hl.dsp.focus({ direction = direction }))
-        hl.dispatch(hl.dsp.cursor.move_to_corner({ corner = 1 }))
-    end
-end
-
-local function workspaceAndTeleport(ws)
-    return function()
-        hl.dispatch(hl.dsp.focus({ workspace = ws }))
         hl.dispatch(hl.dsp.cursor.move_to_corner({ corner = 1 }))
     end
 end
@@ -61,15 +49,24 @@ hl.bind(mainMod .. " + " .. shiftMod .. " + right", window.resize(resizeRight), 
 hl.bind(mainMod .. " + " .. shiftMod .. " + up",    window.resize(resizeUp),    opts("up"))
 hl.bind(mainMod .. " + " .. shiftMod .. " + down",  window.resize(resizeDown),  opts("down"))
 
-hl.bind(mainMod .. " + " .. ctrlMod .. " + left",  window.move({ direction = "left" }),  opts("left"))
-hl.bind(mainMod .. " + " .. ctrlMod .. " + right", window.move({ direction = "right" }), opts("right"))
-hl.bind(mainMod .. " + " .. ctrlMod .. " + up",    window.move({ direction = "up" }),    opts("up"))
-hl.bind(mainMod .. " + " .. ctrlMod .. " + down",  window.move({ direction = "down" }),  opts("down"))
+-- Move the window between tiles; at a monitor's edge it moves to the next monitor (grid.lua)
+hl.bind(mainMod .. " + " .. ctrlMod .. " + left",  function() grid.move_dir("left") end,  opts("left"))
+hl.bind(mainMod .. " + " .. ctrlMod .. " + right", function() grid.move_dir("right") end, opts("right"))
+hl.bind(mainMod .. " + " .. ctrlMod .. " + up",    function() grid.move_dir("up") end,    opts("up"))
+hl.bind(mainMod .. " + " .. ctrlMod .. " + down",  function() grid.move_dir("down") end,  opts("down"))
 
-hl.bind(mainMod .. " + " .. ctrlMod .. " + " .. shiftMod .. " + left",  window.move(moveLeft),  opts("left"))
-hl.bind(mainMod .. " + " .. ctrlMod .. " + " .. shiftMod .. " + right", window.move(moveRight), opts("right"))
-hl.bind(mainMod .. " + " .. ctrlMod .. " + " .. shiftMod .. " + up",    window.move(moveUp),    opts("up"))
-hl.bind(mainMod .. " + " .. ctrlMod .. " + " .. shiftMod .. " + down",  window.move(moveDown),  opts("down"))
+-- Workspace grid (grid.lua): left / right changes n on every monitor, up / down changes m
+-- on the focused one. Adding ALT carries the focused window along.
+local gridMod = mainMod .. " + " .. ctrlMod .. " + " .. shiftMod
+hl.bind(gridMod .. " + left",  function() grid.step_n(-1) end)
+hl.bind(gridMod .. " + right", function() grid.step_n(1) end)
+hl.bind(gridMod .. " + up",    function() grid.step_m("up") end)
+hl.bind(gridMod .. " + down",  function() grid.step_m("down") end)
+
+hl.bind(gridMod .. " + " .. altMod .. " + left",  function() grid.carry_n(-1) end)
+hl.bind(gridMod .. " + " .. altMod .. " + right", function() grid.carry_n(1) end)
+hl.bind(gridMod .. " + " .. altMod .. " + up",    function() grid.carry_m("up") end)
+hl.bind(gridMod .. " + " .. altMod .. " + down",  function() grid.carry_m("down") end)
 
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left",  focusAndTeleport("left"))
@@ -77,17 +74,12 @@ hl.bind(mainMod .. " + right", focusAndTeleport("right"))
 hl.bind(mainMod .. " + up",    focusAndTeleport("up"))
 hl.bind(mainMod .. " + down",  focusAndTeleport("down"))
 
--- Switch workspaces with mainMod + [0-9]
--- Move active window to a workspace with mainMod + SHIFT + [0-9]
-for i = 1, 10 do
-    local key = i % 10 -- 10 maps to key 0
-    hl.bind(mainMod .. " + " .. key, workspaceAndTeleport(i))
-    hl.bind(mainMod .. " + " .. shiftMod .. " + " .. key, hl.dsp.window.move({ workspace = i }))
+-- Switch every monitor to horizontal workspace n with mainMod + [1-6]
+-- Send the active window to n (this monitor's remembered m) with mainMod + SHIFT + [1-6]
+for n = 1, 6 do
+    hl.bind(mainMod .. " + " .. n, function() grid.switch_n(n) end)
+    hl.bind(mainMod .. " + " .. shiftMod .. " + " .. n, function() grid.send_n(n) end)
 end
-
--- Scroll through existing workspaces with mainMod + scroll
-hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
-hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 
 -- Move/resize windows with mainMod + LMB/RMB and dragging
 hl.bind(mainMod .. " + mouse:272", window.drag(),   { mouse = true })
