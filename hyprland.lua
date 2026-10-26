@@ -11,7 +11,21 @@ hl.curve("linear",         { type = "bezier", points = { { 0,    0    }, { 1,   
 hl.curve("almostLinear",   { type = "bezier", points = { { 0.5,  0.5  }, { 0.75, 1 } } })
 hl.curve("quick",          { type = "bezier", points = { { 0.15, 0    }, { 0.1,  1 } } })
 
+-- The laptop panel is eDP-1 or eDP-2 depending on which GPU drives it, and nwg-displays only
+-- writes the one that was connected, so every eDP rule in monitors.lua is applied to both names
+local monitor = hl.monitor
+local EDP_TWIN = { ["eDP-1"] = "eDP-2", ["eDP-2"] = "eDP-1" }
+hl.monitor = function(rule)
+    monitor(rule)
+    if EDP_TWIN[rule.output] then
+        local twin = {}
+        for k, v in pairs(rule) do twin[k] = v end
+        twin.output = EDP_TWIN[rule.output]
+        monitor(twin)
+    end
+end
 require("monitors")
+hl.monitor = monitor
 require("programs")
 require("keybinds")
 require("input")

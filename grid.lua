@@ -19,8 +19,22 @@ local M = {}
 
 -- ── Tweakables ──
 local N_COUNT           = 6
-local MAIN              = "eDP-2"      -- always present, takes the external monitor's workspaces
+local MAIN              = "eDP-1"      -- always present, takes the external monitor's workspaces
+                                       -- (eDP-1 or eDP-2 depending on the GPU mode, see below)
 local EXTERNAL          = "HDMI-A-1"   -- hotplugged
+
+-- The laptop panel hangs off whichever GPU drives it (card1-eDP-1 or card2-eDP-2), so take the
+-- one that sysfs reports as connected. Read from /sys because no monitors exist yet at startup.
+for card = 0, 3 do
+    for _, name in ipairs({ "eDP-1", "eDP-2" }) do
+        local f = io.open("/sys/class/drm/card" .. card .. "-" .. name .. "/status")
+        if f then
+            if f:read("l") == "connected" then MAIN = name end
+            f:close()
+        end
+    end
+end
+
 local MON_INDEX         = { [MAIN] = 0, [EXTERNAL] = 1 }
 local MONITOR_SETTLE_MS = 300          -- wait after a hotplug before renumbering
 local ANIM_SPEED        = { workspaces = 1.94, workspacesIn = 1.21, workspacesOut = 1.94 }
