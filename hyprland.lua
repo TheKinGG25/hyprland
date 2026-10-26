@@ -3,6 +3,14 @@
 -- Edit according to the wiki: https://wiki.hypr.land/Configuring/
 -- #######################################################################################
 
+-- Curves come before the requires: grid.lua (via keybinds) sets workspace animations on load
+--             NAME                TYPE       X0     Y0      X1     Y1
+hl.curve("easeOutQuint",   { type = "bezier", points = { { 0.23, 1    }, { 0.32, 1 } } })
+hl.curve("easeInOutCubic", { type = "bezier", points = { { 0.65, 0.05 }, { 0.36, 1 } } })
+hl.curve("linear",         { type = "bezier", points = { { 0,    0    }, { 1,    1 } } })
+hl.curve("almostLinear",   { type = "bezier", points = { { 0.5,  0.5  }, { 0.75, 1 } } })
+hl.curve("quick",          { type = "bezier", points = { { 0.15, 0    }, { 0.1,  1 } } })
+
 require("monitors")
 require("programs")
 require("keybinds")
@@ -96,12 +104,6 @@ hl.config({
 -- https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
 hl.config({ animations = { enabled = true } })
 
---             NAME                TYPE       X0     Y0      X1     Y1
-hl.curve("easeOutQuint",   { type = "bezier", points = { { 0.23, 1    }, { 0.32, 1 } } })
-hl.curve("easeInOutCubic", { type = "bezier", points = { { 0.65, 0.05 }, { 0.36, 1 } } })
-hl.curve("linear",         { type = "bezier", points = { { 0,    0    }, { 1,    1 } } })
-hl.curve("almostLinear",   { type = "bezier", points = { { 0.5,  0.5  }, { 0.75, 1 } } })
-hl.curve("quick",          { type = "bezier", points = { { 0.15, 0    }, { 0.1,  1 } } })
 
 --              NAME                ONOFF  SPEED   CURVE             STYLE
 hl.animation({ leaf = "global",        enabled = true, speed = 10,   bezier = "default" })
