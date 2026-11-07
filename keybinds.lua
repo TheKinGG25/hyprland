@@ -12,6 +12,11 @@ local resizeRight = { x = resizeWindow,  y = 0, relative = true }
 local resizeUp    = { x = 0, y = -resizeWindow, relative = true }
 local resizeDown  = { x = 0, y = resizeWindow,  relative = true }
 
+local ytmPlayPause  = "curl -X POST http://127.0.0.1:13091/track/toggle-play-state"
+local ytmPrev       = "curl -X POST http://127.0.0.1:13091/track/prev"
+local ytmNext       = "curl -X POST http://127.0.0.1:13091/track/next"
+local ytmVolumeUp   = "curl -X POST -H 'Content-Type: application/json' -d '{\"amount\":5}' http://127.0.0.1:13091/track/volume-up"
+local ytmVolumeDown = "curl -X POST -H 'Content-Type: application/json' -d '{\"amount\":5}' http://127.0.0.1:13091/track/volume-down"
 
 local function opts(direction)
     return { description = "Resize the active window " .. direction, repeating = true } -- need to make it work for the rest 
@@ -38,11 +43,14 @@ hl.bind(altMod .. " + Space", hl.dsp.exec_cmd(programs.menu))
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(programs.terminal))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(programs.fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(programs.browser))
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
+hl.bind(mainMod .. " + " .. shiftMod .. " + E", hl.dsp.exec_cmd(programs.cli_fileManager))
+
+-- hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("pkill quickshell && quickshell"))
-hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))
+hl.bind(mainMod .. " + H", hl.dsp.layout("togglesplit"))
 hl.bind(mainMod .. " + F", window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + W", window.close())
+hl.bind(mainMod .. " + " .. shiftMod .. " + F", window.fullscreen({ action = "toggle" }))
 
 hl.bind(mainMod .. " + " .. shiftMod .. " + left",  window.resize(resizeLeft),  opts("left"))
 hl.bind(mainMod .. " + " .. shiftMod .. " + right", window.resize(resizeRight), opts("right"))
@@ -123,4 +131,15 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
+hl.bind(mainMod .. "+ F1",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind(mainMod .. "+ F2",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+hl.bind(mainMod .. "+ F3",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+
+hl.bind(mainMod .. " + " .. ctrlMod .. "+ F1",  hl.dsp.exec_cmd(ytmPlayPause),  { locked = true })
+hl.bind(mainMod .. " + " .. ctrlMod .. "+ F2",  hl.dsp.exec_cmd(ytmPrev),       { locked = true })
+hl.bind(mainMod .. " + " .. ctrlMod .. "+ F3",  hl.dsp.exec_cmd(ytmNext),       { locked = true })
+hl.bind(ctrlMod .. "+ XF86AudioRaiseVolume",    hl.dsp.exec_cmd(ytmVolumeUp),   { locked = true })
+hl.bind(ctrlMod .. "+ XF86AudioLowerVolume",    hl.dsp.exec_cmd(ytmVolumeDown), { locked = true })
+
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'))
+

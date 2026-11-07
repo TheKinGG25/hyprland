@@ -1,7 +1,8 @@
 -- Programs used throughout the config
 return {
-    terminal    = "ghostty",
-    fileManager = "dolphin",
-    menu        = "vicinae toggle",
-    browser     = "brave-origin-beta --password-store=kwallet6",
+           terminal = "ghostty",
+        fileManager = "dolphin",
+	cli_fileManager = "yazi",
+               menu = "vicinae toggle",
+            browser = "~/.local/bin/brave-origin-beta",
 }

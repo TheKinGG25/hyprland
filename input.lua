@@ -12,7 +12,7 @@ hl.config({
 
         touchpad = {
             natural_scroll = true,
-            scroll_factor  = 1,
+            scroll_factor  = 0.5,
         },
     },
   
@@ -23,17 +23,13 @@ hl.config({
 
 -- https://wiki.hypr.land/Configuring/Basics/Gestures/
 -- gesture = fingers, direction, action
-hl.gesture({
-    fingers   = 3,
-    direction = "horizontal",
-    action    = "workspace",
-})
+-- hl.gesture({
+--     fingers   = 3,
+--     direction = "horizontal",
+--     action    = "workspace",
+-- })
 
 -- Per-device config: https://wiki.hypr.land/Configuring/Advanced-and-Cool/Devices/
-hl.device({ name = "epic-mouse-v1",                                  sensitivity = -1    })
-hl.device({ name = "asustek-computer-inc.-n-key-device-1",           enabled     = false })
-hl.device({ name = "sonix-gaming-keyboard-mouse",                    enabled     = false })
-hl.device({ name = "glorious-model-i-2-wireless-consumer-control-1", enabled     = false })
-hl.device({ name = "glorious-model-i-2-wireless-consumer-control-3", enabled     = false })
-hl.device({ name = "sonix-gaming-keyboard-consumer-control-1",       enabled     = false })
-hl.device({ name = "glorious-model-i-2-wireless-mouse-1",            enabled     = false })
+-- hl.device({ name = "epichy-mouse-v1",                     sensitivity = -1   })
+-- hl.device({ name = "glorious-model-i-2-wireless-mouse",	  sensitivity = -0.5 })
+-- hl.device({ name = "glorious-model-i-2-wireless-mouse-1", sensitivity = -0.5 })

@@ -205,3 +205,15 @@ hl.window_rule({
     move  = "20 monitor_h-120",
     float = true,
 })
+
+local opaque_apps = { "brave-comkdlimbkhemidbbpchhepidbmjpnhh-Default",
+					  "com.chatterino.chatterino" }
+
+for _, app in ipairs(opaque_apps) do
+  hl.window_rule({
+    name  = "opaque-" .. app,
+    match = { class = "^(" .. app .. ")$" },
+    opacity = "1.0 override 1.0 override 1.0 override",
+    no_blur = true,
+  })
+end
