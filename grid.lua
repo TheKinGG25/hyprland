@@ -42,6 +42,8 @@ local ANIM_CURVE        = "almostLinear"
 local ZOOM_DEFAULT      = 3            -- overview: workspaces visible across (and down) at 100%
 local ZOOM_MIN          = 1            -- Ctrl+= stops here (300%)
 local ZOOM_MAX          = 6            -- Ctrl+- stops here (50%)
+local SCROLL_COOLDOWN   = 250          -- scroll_m: ms between steps, so a touchpad swipe or a
+                                       -- fast wheel spin moves one workspace at a time
 
 -- Ids from here up are scratch space (parked empty workspaces, ids in flight), never grid cells
 local SCRATCH = 80000
@@ -414,6 +416,24 @@ function M.step_m(dir)
     if not mi then return end
     local t = vertical_target(mon.name, n, m, dir)
     if t then show_m(mi, n, t) end
+end
+
+-- Scroll wheel: Meta + Ctrl + Shift + wheel (mon_name nil), or the wheel over the workspace
+-- numbers on a Quickshell bar (mon_name = that bar's screen). Same as step_m, at most one step
+-- per SCROLL_COOLDOWN. From the bar the cursor goes back where it was, so it stays on the
+-- numbers and the next scroll still lands there.
+local scroll_lock, scroll_timer = false, nil
+function M.scroll_m(dir, mon_name)
+    if scroll_lock or busy or hotplug then return end
+    if mon_name and not hl.get_monitor(mon_name) then return end
+    scroll_lock = true
+    scroll_timer = hl.timer(function() scroll_lock = false end, { timeout = SCROLL_COOLDOWN, type = "oneshot" })
+    if not mon_name then return M.step_m(dir) end
+    local cursor = hl.get_cursor_pos()
+    local active = hl.get_active_monitor()
+    if not active or active.name ~= mon_name then hl.dispatch(hl.dsp.focus({ monitor = mon_name })) end
+    M.step_m(dir)
+    if cursor then hl.dispatch(hl.dsp.cursor.move({ x = cursor.x, y = cursor.y })) end
 end
 
 -- Up / Down inside the overview: like step_m, but only through workspaces with windows,

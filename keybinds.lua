@@ -56,12 +56,14 @@ hl.bind(mainMod .. " + " .. ctrlMod .. " + up",    function() grid.move_dir("up"
 hl.bind(mainMod .. " + " .. ctrlMod .. " + down",  function() grid.move_dir("down") end,  opts("down"))
 
 -- Workspace grid (grid.lua): left / right changes n on every monitor, up / down changes m
--- on the focused one. Adding ALT carries the focused window along.
+-- on the focused one (also with the scroll wheel). Adding ALT carries the focused window along.
 local gridMod = mainMod .. " + " .. ctrlMod .. " + " .. shiftMod
 hl.bind(gridMod .. " + left",  function() grid.step_n(-1) end)
 hl.bind(gridMod .. " + right", function() grid.step_n(1) end)
 hl.bind(gridMod .. " + up",    function() grid.step_m("up") end)
 hl.bind(gridMod .. " + down",  function() grid.step_m("down") end)
+hl.bind(gridMod .. " + mouse_up",   function() grid.scroll_m("up") end)
+hl.bind(gridMod .. " + mouse_down", function() grid.scroll_m("down") end)
 
 hl.bind(gridMod .. " + " .. altMod .. " + left",  function() grid.carry_n(-1) end)
 hl.bind(gridMod .. " + " .. altMod .. " + right", function() grid.carry_n(1) end)
