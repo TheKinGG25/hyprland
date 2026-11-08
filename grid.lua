@@ -13,6 +13,12 @@
 --                   {"n": 1, "overview": {"open": false, "zoom": 3},
 --                    "screens": {"eDP-2": {"index": 0, "m": [m per n], "rows": [stack + empty slot per n]}}}
 -- Both are reset when Hyprland starts.
+--
+-- Pinned windows (Meta + P, M.toggle_pin) follow their monitor: when the workspace they are
+-- on stops being shown, they move to the one that monitor shows now. Tiled ones are moved with
+-- the cursor on their old spot, so the layout splits on that side and they keep their place.
+-- Floating ones also get Hyprland's own pin, so they stay put during the slide.
+-- They carry the PIN_TAG tag, which the window rule below gives its own border color.
 -- #######################################################################################
 
 local M = {}
@@ -45,6 +51,8 @@ local ZOOM_MAX          = 6            -- Ctrl+- stops here (50%)
 local CURSOR_HIDE_MS    = 150          -- center_cursor: force the cursor invisible this long
 local SCROLL_COOLDOWN   = 250         -- scroll_m: ms between steps, so a touchpad swipe or a
                                        -- fast wheel spin moves one workspace at a time
+local PIN_TAG           = "pinned"
+local PIN_BORDER        = "rgba(ffaa33ee) rgba(b3772480)"   -- pinned windows: active, inactive
 
 -- Ids from here up are scratch space (parked empty workspaces, ids in flight), never grid cells
 local SCRATCH = 80000
@@ -62,8 +70,14 @@ local VIEW_FILE  = runtime .. "/hypr-grid.json"
 --          even after Hyprland has shuffled workspaces around on its own
 -- extra:   monitor index for any monitor not in MON_INDEX
 -- overview: Meta+Tab view drawn by Quickshell; zoom = workspaces visible across
+-- pins:    pins[window address] = id of the workspace the pinned window was on at the last
+--          normalize. A different id now means it was moved on purpose, so it is not pulled back.
+-- pin_spot: pin_spot[window address] = {x, y}, the center of a tiled pinned window as a
+--          fraction of its monitor, from the last time it shared a workspace (alone it fills
+--          the screen, which says nothing about its side)
 local function fresh_state()
-    return { n = 1, last_m = {}, origin = {}, extra = {}, overview = { open = false, zoom = ZOOM_DEFAULT } }
+    return { n = 1, last_m = {}, origin = {}, extra = {}, pins = {}, pin_spot = {},
+             overview = { open = false, zoom = ZOOM_DEFAULT } }
 end
 
 local state = fresh_state()
@@ -274,7 +288,80 @@ local function load()
         state = fresh_state()
         for k, v in pairs(t) do state[k] = v end
     end
+    state.pins = state.pins or {}
+    state.pin_spot = state.pin_spot or {}
     state.overview.open = false   -- a reload drops the overview submap, so the view closes too
+end
+
+---------------------
+---- PINS ----
+---------------------
+
+local function has_tag(w, tag)
+    for _, t in pairs(w.tags or {}) do
+        if t == tag then return true end
+    end
+    return false
+end
+
+local function pinned_windows()
+    local wins = {}
+    for _, w in ipairs(hl.get_windows()) do
+        if state.pins[w.address] then wins[w.address] = w end
+    end
+    return wins
+end
+
+-- Pinned windows whose workspace is no longer shown move to what their monitor shows now
+local function follow_pins()
+    if not next(state.pins) then return end
+    local wins = pinned_windows()
+    local focus, cursor = hl.get_active_window(), hl.get_cursor_pos()
+    local moved = false
+    for addr, was in pairs(state.pins) do
+        local w = wins[addr]
+        local ws = w and w.workspace
+        local mon = ws and ws.monitor and hl.get_monitor(ws.monitor.name)
+        local to = mon and mon.active_workspace
+        if not w then
+            state.pins[addr] = nil
+            state.pin_spot[addr] = nil
+        elseif ws.id == was and not ws.special and not ws.visible and not w.pinned
+               and to and to.id ~= ws.id and not to.special then
+            local spot = state.pin_spot[addr]
+            if not w.floating and spot then
+                local s = mon.scale or 1
+                hl.dispatch(hl.dsp.cursor.move({ x = math.floor(mon.x + spot[1] * mon.width / s),
+                                                 y = math.floor(mon.y + spot[2] * mon.height / s) }))
+            end
+            hl.dispatch(hl.dsp.window.move({ workspace = to.id, follow = false, window = w }))
+            moved = true
+        end
+    end
+    if not moved then return end
+    local now = hl.get_active_window()
+    if focus and (not now or now.address ~= focus.address) then
+        hl.dispatch(hl.dsp.focus({ window = focus }))
+    end
+    if cursor then hl.dispatch(hl.dsp.cursor.move({ x = cursor.x, y = cursor.y })) end
+end
+
+-- After renumbering: remember each pinned window's workspace and spot (see pin_spot), and
+-- put the tag back if it went missing (a reload, a rule change)
+local function record_pins()
+    for addr, w in pairs(pinned_windows()) do
+        local ws = w.workspace
+        state.pins[addr] = ws and ws.id or 0
+        local mon = ws and ws.visible and ws.monitor and hl.get_monitor(ws.monitor.name)
+        if mon and not w.floating and ws.windows > 1 and w.at and w.size then
+            local s = mon.scale or 1
+            state.pin_spot[addr] = { (w.at.x + w.size.x / 2 - mon.x) / (mon.width / s),
+                                     (w.at.y + w.size.y / 2 - mon.y) / (mon.height / s) }
+        end
+        if not has_tag(w, PIN_TAG) then
+            hl.dispatch(hl.dsp.window.tag({ tag = "+" .. PIN_TAG, window = w }))
+        end
+    end
 end
 
 ---------------------
@@ -289,6 +376,7 @@ end
 -- Safe to call any time: when everything is already in place it changes nothing.
 function M.normalize()
     busy = true
+    follow_pins()
     local present = {}
     for _, mon in ipairs(hl.get_monitors()) do present[mon.name] = true end
 
@@ -360,6 +448,7 @@ function M.normalize()
     local _, mi, n = here()
     if mi then state.n = n end
 
+    record_pins()
     save()
     busy = false
 end
@@ -516,6 +605,48 @@ function M.carry_m(dir)
     M.normalize()
     settle_cursor()
 end
+
+-- Meta + P: pin / unpin the focused window (see PINS). Floating windows also get Hyprland's
+-- own pin, which keeps them still while the workspace slides.
+function M.toggle_pin()
+    if busy or hotplug then return end
+    local w = hl.get_active_window()
+    if not w then return end
+    if state.pins[w.address] then
+        state.pins[w.address] = nil
+        state.pin_spot[w.address] = nil
+        hl.dispatch(hl.dsp.window.tag({ tag = "-" .. PIN_TAG, window = w }))
+        if w.pinned then hl.dispatch(hl.dsp.window.pin({ window = w })) end
+    else
+        state.pins[w.address] = w.workspace and w.workspace.id or 0
+        hl.dispatch(hl.dsp.window.tag({ tag = "+" .. PIN_TAG, window = w }))
+        if w.floating and not w.pinned then hl.dispatch(hl.dsp.window.pin({ window = w })) end
+    end
+    save()
+end
+
+-- Meta + F: float / tile toggle that keeps pins working. Tiling a window that still has
+-- Hyprland's own pin crashes Hyprland (assert in the dwindle layout), so that pin is dropped
+-- first. A pinned window that gets floated picks up Hyprland's pin instead.
+function M.toggle_float()
+    local w = hl.get_active_window()
+    if not w then return end
+    if w.floating and w.pinned then
+        hl.dispatch(hl.dsp.window.pin({ window = w }))
+        local again = hl.get_active_window()
+        if not again or again.address ~= w.address or again.pinned then return end
+    end
+    local was_floating = w.floating   -- w is live: read it before the toggle changes it
+    hl.dispatch(hl.dsp.window.float({ action = "toggle", window = w }))
+    if not was_floating and state.pins[w.address] then
+        local now = hl.get_active_window()
+        if now and now.address == w.address and now.floating and not now.pinned then
+            hl.dispatch(hl.dsp.window.pin({ window = now }))
+        end
+    end
+end
+
+hl.window_rule({ name = "grid-pinned-border", match = { tag = PIN_TAG }, border_color = PIN_BORDER })
 
 ---------------------
 ---- OVERVIEW ----
