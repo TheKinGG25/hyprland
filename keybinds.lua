@@ -43,6 +43,7 @@ hl.bind(altMod .. " + Space", hl.dsp.exec_cmd(programs.menu))
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(programs.terminal))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(programs.fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(programs.browser))
+hl.bind(mainMod .. " + " .. shiftMod .. " + B", hl.dsp.exec_cmd(programs.browser .. " --incognito"))
 hl.bind(mainMod .. " + " .. shiftMod .. " + E", hl.dsp.exec_cmd(programs.cli_fileManager))
 
 -- hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
