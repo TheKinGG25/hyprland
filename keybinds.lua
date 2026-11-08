@@ -25,7 +25,7 @@ end
 local function focusAndTeleport(direction)
     return function()
         hl.dispatch(hl.dsp.focus({ direction = direction }))
-        hl.dispatch(hl.dsp.cursor.move_to_corner({ corner = 1 }))
+        grid.center_cursor()
     end
 end
 

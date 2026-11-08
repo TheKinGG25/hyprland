@@ -42,7 +42,8 @@ local ANIM_CURVE        = "almostLinear"
 local ZOOM_DEFAULT      = 3            -- overview: workspaces visible across (and down) at 100%
 local ZOOM_MIN          = 1            -- Ctrl+= stops here (300%)
 local ZOOM_MAX          = 6            -- Ctrl+- stops here (50%)
-local SCROLL_COOLDOWN   = 250          -- scroll_m: ms between steps, so a touchpad swipe or a
+local CURSOR_HIDE_MS    = 150          -- center_cursor: force the cursor invisible this long
+local SCROLL_COOLDOWN   = 250         -- scroll_m: ms between steps, so a touchpad swipe or a
                                        -- fast wheel spin moves one workspace at a time
 
 -- Ids from here up are scratch space (parked empty workspaces, ids in flight), never grid cells
@@ -170,11 +171,28 @@ local function set_anim(style)
     end
 end
 
+-- Cursor to the middle of the focused window. Binds are key presses, so with
+-- cursor.hide_on_key_press (input.lua) it stays hidden there until the mouse moves.
+-- Also used by the Meta + arrow focus binds in keybinds.lua. Returns false with no window.
+-- cursor.invisible is forced on around the warp, so the cursor is not drawn for a frame at its
+-- new spot before the key-press hide catches up; after CURSOR_HIDE_MS hide_on_key_press takes over.
+local cursor_timer
+function M.center_cursor()
+    local w = hl.get_active_window()
+    if not w or not w.at or not w.size then return false end
+    hl.config({ cursor = { invisible = true } })
+    hl.dispatch(hl.dsp.cursor.move({ x = math.floor(w.at.x + w.size.x / 2),
+                                     y = math.floor(w.at.y + w.size.y / 2) }))
+    cursor_timer = hl.timer(function() hl.config({ cursor = { invisible = false } }) end,
+                            { timeout = CURSOR_HIDE_MS, type = "oneshot" })
+    return true
+end
+
 -- Same as the old workspace binds: cursor to the focused window. With no window, put the
 -- cursor back where it was, since focusing the other monitor may have warped it there.
 local function settle_cursor(cursor)
-    if hl.get_active_window() then
-        hl.dispatch(hl.dsp.cursor.move_to_corner({ corner = 1 }))
+    if M.center_cursor() then
+        return
     elseif cursor then
         hl.dispatch(hl.dsp.cursor.move({ x = cursor.x, y = cursor.y }))
     end

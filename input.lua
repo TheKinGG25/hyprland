@@ -18,6 +18,8 @@ hl.config({
   
     cursor = {
         no_hardware_cursors = true,
+        hide_on_key_press   = true,   -- hidden from any key press until the mouse moves, so the
+                                      -- warp to a newly focused window's middle stays invisible
     },
 })
 
