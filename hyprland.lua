@@ -165,6 +165,7 @@ hl.config({
 		disable_splash_rendering = true,
 		font_family = "JetBrainsMono",
 		middle_click_paste = false,
+		focus_on_activate = true,  -- jump to a window that asks for focus (e.g. Brave when another app opens a link)
     },
 })
 
