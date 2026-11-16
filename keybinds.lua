@@ -48,6 +48,7 @@ hl.bind(mainMod .. " + " .. shiftMod .. " + E", hl.dsp.exec_cmd(programs.cli_fil
 
 -- hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("pkill quickshell && quickshell"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qs ipc call lock lock"))   -- lock screen: ~/.config/quickshell/LockScreen.qml
 hl.bind(mainMod .. " + H", hl.dsp.layout("togglesplit"))
 hl.bind(mainMod .. " + F", function() grid.toggle_float() end)   -- grid.lua: keeps pins safe
 hl.bind(mainMod .. " + W", window.close())

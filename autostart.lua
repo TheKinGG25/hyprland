@@ -5,6 +5,7 @@ hl.on("hyprland.start", function()
     -- hl.exec_cmd("quickshell")
     hl.exec_cmd(programs.browser)
     hl.exec_cmd("hyprpaper")
+    hl.exec_cmd("hypridle")   -- locks before sleep and on loginctl lock-session, see hypridle.conf
     hl.exec_cmd("vicinae server")
     hl.exec_cmd("/usr/lib/pam_kwallet_init")
 	hl.exec_cmd("kwalletd6")

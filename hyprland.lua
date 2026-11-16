@@ -151,6 +151,7 @@ hl.config({
 		font_family = "JetBrainsMono",
 		middle_click_paste = false,
 		focus_on_activate = true,  -- jump to a window that asks for focus (e.g. Brave when another app opens a link)
+		allow_session_lock_restore = true, -- a restarted Quickshell may take over the lock if the old one died
     },
 })
 
