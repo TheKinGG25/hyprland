@@ -8,6 +8,11 @@ hl.config({
         kb_rules   = "",
 
         follow_mouse = 1,
+        -- Only refocus on hover when the cursor enters a different window. With the default (true),
+        -- Hyprland re-sends focus to the window under a resting cursor whenever it simulates a mouse
+        -- move, which includes the moment a layer like the Vicinae launcher maps. Since center_cursor
+        -- (grid.lua) parks the cursor on the focused window, that stole focus from the launcher.
+        mouse_refocus = false,
         sensitivity  = 0, -- -1.0 - 1.0, 0 means no modification.
 
         touchpad = {

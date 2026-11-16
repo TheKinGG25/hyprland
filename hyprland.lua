@@ -34,21 +34,6 @@ require("workspace")
 require("environment_variables")
 
 
------------------------------
----- ENVIRONMENT VARIABLES ----
------------------------------
-
--- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Environment-variables/
-
-hl.env("XCURSOR_SIZE",               "24")
-hl.env("HYPR_SIZE",                  "24")
-hl.env("WLR_NO_HARDWARE_CURSORS",    "1")
-hl.env("WLR_RENDERER_ALLOW_SOFTWARE","1")
-hl.env("LIBVA_DRIVER_NAME",          "nvidia")
-hl.env("__GLX_VENDOR_LIBRARY_NAME",  "nvidia")
-hl.env("NVD_BACKEND",                "direct")
-
-
 -----------------------
 ----- PERMISSIONS -----
 -----------------------
@@ -166,6 +151,13 @@ hl.config({
 		font_family = "JetBrainsMono",
 		middle_click_paste = false,
 		focus_on_activate = true,  -- jump to a window that asks for focus (e.g. Brave when another app opens a link)
+    },
+})
+
+-- https://wiki.hypr.land/Configuring/Basics/Variables/#render
+hl.config({
+    render = {
+        cm_auto_hdr = 0, -- default 1 switches the monitor to HDR whenever a fullscreen app asks for it
     },
 })
 
